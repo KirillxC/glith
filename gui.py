@@ -38,6 +38,8 @@ class GlitchApp(tk.Tk):
 
         self.original_img = None
         self.glitched_img = None
+        self.is_playing = False
+        self.after_id = None
 
         self.setup_ui()
 
@@ -84,6 +86,15 @@ class GlitchApp(tk.Tk):
         b_glitch = ttk.Button(actions, text="⚡ Glitch", command=self.glitch_and_display)
         b_glitch.pack(side=tk.LEFT, padx=5)
         Tooltip(b_glitch, "Apply Glitch Effect")
+
+        # Play/Stop Controls
+        ttk.Label(actions, text="Hz:").pack(side=tk.LEFT, padx=(10, 2))
+        self.frequency_spin = ttk.Spinbox(actions, from_=1, to=60, width=5)
+        self.frequency_spin.set(5)
+        self.frequency_spin.pack(side=tk.LEFT, padx=2)
+
+        self.b_play = ttk.Button(actions, text="▶ Play", command=self.toggle_play)
+        self.b_play.pack(side=tk.LEFT, padx=5)
         
         b_copy = ttk.Button(actions, text="💾 Copy", command=self.copy_to_clipboard)
         b_copy.pack(side=tk.LEFT, padx=5)
@@ -100,10 +111,36 @@ class GlitchApp(tk.Tk):
 
     # --- Methods ---
     def clear_image(self):
+        self.is_playing = False
+        if self.after_id: self.after_cancel(self.after_id)
+        self.b_play.config(text="▶ Play")
         self.original_img = None
         self.glitched_img = None
         self.path_entry.delete(0, tk.END)
         self.image_label.config(image='', text="Paste (Ctrl+V) or Load Image")
+
+    def toggle_play(self):
+        if self.is_playing:
+            self.is_playing = False
+            self.b_play.config(text="▶ Play")
+            if self.after_id:
+                self.after_cancel(self.after_id)
+        else:
+            if not self.original_img: return
+            self.is_playing = True
+            self.b_play.config(text="⏹ Stop")
+            self.animate_glitch()
+
+    def animate_glitch(self):
+        if not self.is_playing: return
+        self.glitch_and_display()
+        try:
+            hz = float(self.frequency_spin.get())
+            ms = int(1000 / hz)
+        except:
+            ms = 200
+        self.after_id = self.after(ms, self.animate_glitch)
+
 
     def paste_from_clipboard(self):
         img = ImageGrab.grabclipboard()
